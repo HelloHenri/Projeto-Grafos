@@ -1,0 +1,22 @@
+{
+  "nome": "Hospital Municipal (Caso Médio)",
+  "descricao": "15 turnos críticos onde 4 setores colidem simultaneamente.",
+  "limite_equipes_disponiveis": 4,
+  "turnos": [
+    "T01_UTI_A", "T02_UTI_B", "T03_Centro_Cirurgico", "T04_Pronto_Socorro",
+    "T05_Pediatria", "T06_Ortopedia", "T07_Cardiologia", "T08_Neurologia",
+    "T09_Oncologia", "T10_Maternidade", "T11_Radiologia", "T12_Triagem",
+    "T13_Enfermaria_1", "T14_Enfermaria_2", "T15_Ambulatorio"
+  ],
+  "conflitos": [
+    ["T01_UTI_A", "T02_UTI_B"], ["T01_UTI_A", "T03_Centro_Cirurgico"], ["T01_UTI_A", "T04_Pronto_Socorro"],
+    ["T02_UTI_B", "T03_Centro_Cirurgico"], ["T02_UTI_B", "T04_Pronto_Socorro"],
+    ["T03_Centro_Cirurgico", "T04_Pronto_Socorro"],
+    ["T05_Pediatria", "T06_Ortopedia"], ["T05_Pediatria", "T10_Maternidade"],
+    ["T06_Ortopedia", "T07_Cardiologia"], ["T07_Cardiologia", "T08_Neurologia"],
+    ["T08_Neurologia", "T09_Oncologia"], ["T09_Oncologia", "T11_Radiologia"],
+    ["T11_Radiologia", "T12_Triagem"], ["T12_Triagem", "T13_Enfermaria_1"],
+    ["T13_Enfermaria_1", "T14_Enfermaria_2"], ["T14_Enfermaria_2", "T15_Ambulatorio"],
+    ["T01_UTI_A", "T15_Ambulatorio"], ["T04_Pronto_Socorro", "T12_Triagem"]
+  ]
+}

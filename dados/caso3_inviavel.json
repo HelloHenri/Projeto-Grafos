@@ -1,0 +1,19 @@
+{
+  "nome": "Crise de Escala - Sem Solução Viável (Caso de Fronteira)",
+  "descricao": "4 turnos totalmente conflitantes entre si (Grafo Completo K4), mas com apenas 2 equipes disponíveis.",
+  "limite_equipes_disponiveis": 2,
+  "turnos": [
+    "Emergencia_1",
+    "Emergencia_2",
+    "Emergencia_3",
+    "Emergencia_4"
+  ],
+  "conflitos": [
+    ["Emergencia_1", "Emergencia_2"],
+    ["Emergencia_1", "Emergencia_3"],
+    ["Emergencia_1", "Emergencia_4"],
+    ["Emergencia_2", "Emergencia_3"],
+    ["Emergencia_2", "Emergencia_4"],
+    ["Emergencia_3", "Emergencia_4"]
+  ]
+}

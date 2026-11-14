@@ -1,0 +1,21 @@
+{
+  "nome": "Posto de Saúde Bairro (Caso Simples)",
+  "descricao": "6 turnos semanais com conflitos diretos de equipe médica.",
+  "limite_equipes_disponiveis": 3,
+  "turnos": [
+    "UTI_Seg_Manha",
+    "Cirurgia_Seg_Manha",
+    "Pediatria_Ter_Tarde",
+    "Enfermaria_Qua_Noite",
+    "Triagem_Qui_Manha",
+    "Plantao_Sex_Noite"
+  ],
+  "conflitos": [
+    ["UTI_Seg_Manha", "Cirurgia_Seg_Manha"],
+    ["UTI_Seg_Manha", "Enfermaria_Qua_Noite"],
+    ["Cirurgia_Seg_Manha", "Pediatria_Ter_Tarde"],
+    ["Pediatria_Ter_Tarde", "Triagem_Qui_Manha"],
+    ["Enfermaria_Qua_Noite", "Plantao_Sex_Noite"],
+    ["Triagem_Qui_Manha", "Plantao_Sex_Noite"]
+  ]
+}
