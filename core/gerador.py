@@ -1,36 +1,45 @@
 import json
+import os
 import networkx as nx
 
 def carregar_instancia_json(caminho_arquivo):
-    """Lê um arquivo JSON de cenário hospitalar e monta o grafo."""
-    with open(caminho_arquivo, "r", encoding="utf-8") as f:
-        dados = json.load(f)
+    """
+    Carrega uma instância de grafo a partir de um arquivo JSON estruturado.
+    """
+    if not os.path.exists(caminho_arquivo):
+        raise FileNotFoundError(f"Arquivo de instância não encontrado: {caminho_arquivo}")
+        
+    with open(caminho_arquivo, 'r', encoding='utf-8') as f:
+        data = json.load(f)
         
     G = nx.Graph()
-    G.add_nodes_from(dados["turnos"])
-    G.add_edges_from(dados["conflitos"])
-    
+    # Adiciona nós e arestas descritos no JSON
+    for no in data.get("vertices", []):
+        G.add_node(no)
+    for aresta in data.get("arestas", []):
+        G.add_edge(aresta[0], aresta[1])
+        
     return {
-        "grafo": G,
-        "nome": dados["nome"],
-        "descricao": dados["descricao"],
-        "limite_equipes": dados["limite_equipes_disponiveis"]
+        "nome": data.get("nome", "Instância Desconhecida"),
+        "descricao": data.get("descricao", ""),
+        "limite_equipes": data.get("limite_equipes", 5),
+        "grafo": G
     }
 
-def gerar_instancia_massiva(num_turnos=150, probabilidade_conflito=0.08):
+def gerar_instancia_massiva(num_turnos=120, probabilidade_conflito=0.08):
     """
-    Gera um grafo aleatório de grande porte (Erdos-Renyi) simulando um hospital regional.
-    Atende ao requisito 4.3 (instância inviável para resolução manual).
+    Gera uma instância massiva de grande escala usando modelo de Erdos-Renyi 
+    (grafo aleatório) para cumprir a exigência de cenário inviável/manual complexo.
     """
-    G_numerico = nx.erdos_renyi_graph(n=num_turnos, p=probabilidade_conflito, seed=42)
+    G = nx.erdos_renyi_graph(n=num_turnos, p=probabilidade_conflito, seed=42)
     
-    # Renomeia os nós para nomes de turnos reais
-    mapeamento = {i: f"Turno_{i+1:03d}" for i in G_numerico.nodes()}
-    G = nx.relabel_nodes(G_numerico, mapeamento)
+    # Renomeia os nós para o contexto hospitalar
+    mapping = {i: f"Turno_{i+1:03d}" for i in G.nodes()}
+    G = nx.relabel_nodes(G, mapping)
     
     return {
-        "grafo": G,
-        "nome": f"Hospital Regional Massivo ({num_turnos} Turnos)",
-        "descricao": "Instância gerada computacionalmente com alta densidade de conflitos. Resolução manual inviável.",
-        "limite_equipes": 20
+        "nome": "Hospital Regional (Instância Massiva)",
+        "descricao": f"Cenário de grande porte com {num_turnos} turnos gerado estocasticamente para validação de desempenho.",
+        "limite_equipes": 12,
+        "grafo": G
     }
