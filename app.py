@@ -19,9 +19,7 @@ st.title("Sistema de Alocação de Turnos Hospitalares via Coloração de Grafos
 st.markdown("**Disciplina:** Teoria dos Grafos | **Tema 8:** Coloração de Grafos")
 st.markdown("---")
 
-# ==========================================
-# 1. SELEÇÃO DE DADOS NA PRÓPRIA PÁGINA
-# ==========================================
+
 st.subheader("1. Seleção da Instância do Problema")
 
 opcao_instancia = st.radio(
@@ -36,55 +34,69 @@ opcao_instancia = st.radio(
     horizontal=True
 )
 
-# Função auxiliar para gerar um grafo totalmente novo com base no tipo escolhido
-def criar_nova_instancia(opcao):
+def criar_nova_instancia(opcao, seed_aleatorio=None):
+    if seed_aleatorio is None:
+        seed_aleatorio = random.randint(1, 10000)
+
     if "Caso 1" in opcao:
-        n = 6
-        G = nx.erdos_renyi_graph(n=n, p=0.5, seed=random.randint(1, 1000))
+        caminho = os.path.join("dados", "caso1_pequeno.json")
+    
+        G = nx.erdos_renyi_graph(n=6, p=0.5, seed=seed_aleatorio)
         mapping = {i: f"Turno_{i+1}" for i in G.nodes()}
         G = nx.relabel_nodes(G, mapping)
         return {
-            "nome": "Posto de Saúde Bairro (Variação Gerada)",
-            "descricao": "6 turnos semanais com nova rede de conflitos gerada estocasticamente.",
-            "limite_equipes": 3,
-            "grafo": G
-        }
-    elif "Caso 2" in opcao:
-        n = 15
-        G = nx.erdos_renyi_graph(n=n, p=0.35, seed=random.randint(1, 1000))
-        mapping = {i: f"T{i+1:02d}_Plantao" for i in G.nodes()}
-        G = nx.relabel_nodes(G, mapping)
-        return {
-            "nome": "Hospital Municipal (Variação Gerada)",
-            "descricao": "15 turnos com topologia de conflitos rede-aleatória recriada do zero.",
+            "nome": "Posto de Saúde Bairro (Pequeno)",
+            "descricao": f"6 turnos semanais (Gerado com variação aleatória ID: {seed_aleatorio}).",
             "limite_equipes": 4,
             "grafo": G
         }
+        
+    elif "Caso 2" in opcao:
+        G = nx.erdos_renyi_graph(n=15, p=0.35, seed=seed_aleatorio)
+        mapping = {i: f"T{i+1:02d}_Plantao" for i in G.nodes()}
+        G = nx.relabel_nodes(G, mapping)
+        return {
+            "nome": "Hospital Municipal (Médio)",
+            "descricao": f"15 turnos com topologia dinâmica (Seed: {seed_aleatorio}).",
+            "limite_equipes": 4,
+            "grafo": G
+        }
+        
     elif "Caso 3" in opcao:
-        caminho = os.path.join("dados", "caso3_inviavel.json")
-        return carregar_instancia_json(caminho)
+        G = nx.complete_graph(4)
+        mapping = {i: f"Turno_Critico_{i+1}" for i in G.nodes()}
+        G = nx.relabel_nodes(G, mapping)
+        return {
+            "nome": "Crise de Escala (Inviável - K4)",
+            "descricao": "Cenário de conflito máximo onde todos os turnos se sobrepõem.",
+            "limite_equipes": 2,
+            "grafo": G
+        }
+        
     else:
-        return gerar_instancia_massiva(num_turnos=120, probabilidade_conflito=random.uniform(0.06, 0.10))
+        return gerar_instancia_massiva(num_turnos=120, probabilidade_conflito=0.08)
 
-# Inicializa ou altera a instância se o usuário trocar no rádio
+
+if "grafo_seed" not in st.session_state:
+    st.session_state.grafo_seed = 42
+
 if "ultima_opcao" not in st.session_state or st.session_state.ultima_opcao != opcao_instancia:
     st.session_state.ultima_opcao = opcao_instancia
-    dados_atuais = criar_nova_instancia(opcao_instancia)
-    st.session_state.dados_atuais = dados_atuais
-    st.session_state.G_ativo = dados_atuais["grafo"].copy()
+    dados_iniciais = criar_nova_instancia(opcao_instancia, st.session_state.grafo_seed)
+    st.session_state.dados_atuais = dados_iniciais
+    st.session_state.G_ativo = dados_iniciais["grafo"].copy()
+    st.session_state.valor_padrao_limite = int(dados_iniciais.get("limite_equipes", 4))
 
 dados = st.session_state.dados_atuais
 G = st.session_state.G_ativo
-limite_equipes = dados["limite_equipes"]
+
+if "valor_padrao_limite" not in st.session_state:
+    st.session_state.valor_padrao_limite = int(dados.get("limite_equipes", 4))
 
 st.info(f"**Cenário Atual:** {dados['nome']} — {dados['descricao']}")
-
 st.markdown("---")
 
-# ==========================================
-# 2. EXECUTAR OS ALGORITMOS ANTES DO PAINEL PARA TER OS DADOS PRONTOS
-# ==========================================
-# Executa Welsh-Powell
+
 t_inicio = time.perf_counter()
 res_wp = welsh_powell(G)
 t_wp = (time.perf_counter() - t_inicio) * 1000
@@ -96,7 +108,6 @@ else:
     col_wp, num_wp = res_wp[0], res_wp[1]
 valido_wp = validar_coloracao(G, col_wp)
 
-# Executa DSATUR
 t_inicio = time.perf_counter()
 res_ds = dsatur(G)
 t_ds = (time.perf_counter() - t_inicio) * 1000
@@ -110,14 +121,11 @@ valido_ds = validar_coloracao(G, col_ds)
 
 grau_max = max(dict(G.degree()).values()) if G.number_of_nodes() > 0 else 0
 
-# ==========================================
-# 3. TELA PRINCIPAL: COMPARAÇÃO VISUAL LADO A LADO E PAINEL DE CONTROLE
-# ==========================================
+
 col_grafo1, col_grafo2, col_controles = st.columns([1.2, 1.2, 1])
 
 paleta = ["#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3", "#33FFF3", "#FFA533", "#A533FF"]
 
-# Layout inteligente e adaptativo (evita aglomeração no caso massivo)
 num_nos = G.number_of_nodes()
 exibir_labels = num_nos <= 30  
 
@@ -163,52 +171,54 @@ with col_grafo2:
     st.pyplot(fig2)
 
 if not exibir_labels:
-    st.info("ℹ️ **Modo de Visualização Massiva Ativado:** Rótulos de texto ocultados automaticamente para evitar sobreposição visual (clutter) em redes complexas de alta densidade. O foco está na distribuição topológica e no desempenho das heurísticas.")
+    st.info("ℹ️ **Modo de Visualização Massiva Ativado:** Rótulos de texto ocultados automaticamente.")
 
 with col_controles:
     st.markdown("### Painel de Controle")
     
+    limite_equipes = st.slider(
+        "⚙️ Limite Máximo de Equipes:",
+        min_value=1,
+        max_value=30,
+        value=st.session_state.valor_padrao_limite,
+        step=1
+    )
+
+    
     if st.button("🎲 Gerar Novo Grafo Aleatório", type="primary", use_container_width=True):
-        novo_dados = criar_nova_instancia(opcao_instancia)
+        st.session_state.grafo_seed = random.randint(1, 100000)
+        novo_dados = criar_nova_instancia(opcao_instancia, st.session_state.grafo_seed)
         st.session_state.dados_atuais = novo_dados
         st.session_state.G_ativo = novo_dados["grafo"].copy()
-        st.success("Um novo grafo foi gerado com sucesso!")
+        st.session_state.valor_padrao_limite = int(novo_dados.get("limite_equipes", 4))
+        
+        # Limpa chaves de selectbox antigas
+        for key in list(st.session_state.keys()):
+            if key.startswith("t_a_") or key.startswith("t_b_"):
+                del st.session_state[key]
         st.rerun()
 
     st.markdown("---")
     st.markdown("#### Teste Dinâmico (Adicionar Conflito)")
     
-    if "conflitos_extras" not in st.session_state:
-        st.session_state.conflitos_extras = []
-
     turnos_lista = list(G.nodes())
-    t1 = st.selectbox("Turno A:", turnos_lista, key="t_a")
-    t2 = st.selectbox("Turno B:", [t for t in turnos_lista if t != t1], key="t_b")
+    if len(turnos_lista) >= 2:
+        t1 = st.selectbox("Turno A:", turnos_lista, key=f"t_a_{G.number_of_nodes()}_{G.number_of_edges()}")
+        t2 = st.selectbox("Turno B:", [t for t in turnos_lista if t != t1], key=f"t_b_{G.number_of_nodes()}_{G.number_of_edges()}")
 
-    if st.button("Adicionar Conflito ao Vivo", use_container_width=True):
-        if (t1, t2) not in G.edges() and (t2, t1) not in G.edges():
-            G.add_edge(t1, t2)
-            st.session_state.conflitos_extras.append((t1, t2))
-            st.success(f"Conflito adicionado entre {t1} e {t2}!")
-            st.rerun()
-        else:
-            st.warning("Já existe conflito entre estes turnos.")
+        if st.button("Adicionar Conflito ao Vivo", use_container_width=True):
+            if not G.has_edge(t1, t2):
+                G.add_edge(t1, t2)
+                st.rerun()
+            else:
+                st.warning("Já existe conflito entre estes turnos.")
+    else:
+        st.info("Grafo muito pequeno para novos conflitos.")
 
-    if st.button("Resetar Conflitos Extras", use_container_width=True):
-        for edge in st.session_state.conflitos_extras:
-            if G.has_edge(edge[0], edge[1]):
-                G.remove_edge(edge[0], edge[1])
-        st.session_state.conflitos_extras = []
-        st.success("Conflitos extras removidos.")
-        st.rerun()
 
-# ==========================================
-# 4. MÉTRICAS E RESULTADOS (EXIBIDOS DIRETAMENTE)
-# ==========================================
 st.markdown("---")
 st.markdown("## 📊 Relatório Analítico de Desempenho")
 
-# Blocos de métricas
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Turnos (Vértices)", G.number_of_nodes())
 m2.metric("Conflitos (Arestas)", G.number_of_edges())
@@ -223,7 +233,7 @@ with col_res1:
     st.subheader("🔵 Heurística: Welsh-Powell")
     st.write(f"• **Equipes Necessárias:** {num_wp}")
     st.write(f"• **Tempo de Processamento:** {t_wp:.4f} ms")
-    st.write(f"• **Integridade da Alocação:** {'100% Válida ✅' if valido_wp else 'Inválida ❌'}")
+    st.write(f"• **Integridade da Alocação:** {'100% Válida ' if valido_wp else 'Inválida '}")
     
     if num_wp <= limite_equipes:
         st.success(f"STATUS: ESCALA VIÁVEL! (Utilizou {num_wp} de {limite_equipes} equipes).")
@@ -234,7 +244,7 @@ with col_res2:
     st.subheader("🟢 Heurística: DSATUR (Recomendado)")
     st.write(f"• **Equipes Necessárias:** {num_ds}")
     st.write(f"• **Tempo de Processamento:** {t_ds:.4f} ms")
-    st.write(f"• **Integridade da Alocação:** {'100% Válida ✅' if valido_ds else 'Inválida ❌'}")
+    st.write(f"• **Integridade da Alocação:** {'100% Válida ' if valido_ds else 'Inválida '}")
     
     if num_ds <= limite_equipes:
         st.success(f"STATUS: ESCALA VIÁVEL! (Utilizou {num_ds} de {limite_equipes} equipes).")

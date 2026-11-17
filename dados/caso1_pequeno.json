@@ -1,7 +1,7 @@
 {
   "nome": "Posto de Saúde Bairro (Caso Simples)",
   "descricao": "6 turnos semanais com conflitos diretos de equipe médica.",
-  "limite_equipes_disponiveis": 3,
+  "limite_equipes_disponiveis": 4,
   "turnos": [
     "UTI_Seg_Manha",
     "Cirurgia_Seg_Manha",
